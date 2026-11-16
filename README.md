@@ -4,27 +4,62 @@ Aplikasi mobile Flutter untuk portofolio pribadi milik **Adriana Ainurrahmah Dam
 
 ## Fitur Saat Ini
 
-- Halaman utama (`MyHomePage`) berupa `StatelessWidget` yang dipisah ke `lib/menu.dart`, sedangkan `lib/main.dart` hanya berisi bootstrap aplikasi (`MyApp`).
-- Tiga `InfoCard` di bagian atas yang menampilkan NPM, Name, dan Class.
-- Tiga `ItemCard` dalam `GridView` dengan warna latar berbeda:
-  - **Lihat Proyek** (`Icons.folder`, biru)
-  - **Tambah Proyek** (`Icons.add_circle`, hijau)
-  - **Logout** (`Icons.logout`, merah)
-- Setiap tombol menampilkan `SnackBar` bertuliskan "Kamu telah menekan tombol [Nama Tombol]!".
-- Warna tombol disimpan di model `ItemHomepage` (`name`, `icon`, `color`), sehingga `ItemCard` cukup memakai `item.color` tanpa percabangan.
-- Widget test di `test/widget_test.dart` untuk memastikan identitas, tombol, dan SnackBar tampil.
+**Halaman utama (`MyHomePage`, `lib/screens/menu.dart`)**
+- Tiga `InfoCard` berisi NPM, Name, dan Class. Lebarnya dibagi rata dengan `Expanded` dan tingginya disamakan dengan `IntrinsicHeight`, jadi tetap muat di layar ponsel.
+- Empat `ItemCard` dalam `GridView` dengan warna latar berbeda yang disimpan di model `ItemHomepage` (`name`, `icon`, `color`, `destination`):
+  - **Lihat Proyek** (`Icons.folder`, biru): menampilkan SnackBar.
+  - **Tambah Proyek** (`Icons.add_circle`, hijau): SnackBar, lalu membuka `ProjectFormPage` dengan `Navigator.push()`.
+  - **Tambah Edukasi** (`Icons.school`, ungu): SnackBar, lalu membuka `EducationFormPage` dengan `Navigator.push()`.
+  - **Logout** (`Icons.logout`, merah): menampilkan SnackBar.
+- Setiap tombol menampilkan SnackBar "Kamu telah menekan tombol [Nama Tombol]!".
+
+**Drawer (`LeftDrawer`, `lib/widgets/left_drawer.dart`)**
+- Opsi **Home**, **Add Project**, dan **Add Education**. Drawer yang sama dipakai di halaman utama dan kedua halaman formulir.
+- Berpindah halaman memakai `Navigator.pushReplacement()`. Opsi halaman yang sedang aktif disorot (`selected`), dan jika ditekan hanya menutup drawer tanpa membuat halaman baru.
+
+**Formulir Tambah Proyek (`ProjectFormPage`, `lib/screens/project_form.dart`)**
+- Field: Nama Proyek (wajib, maks. 100 karakter), Deskripsi Proyek (wajib, maks. 500), Kategori Proyek (dropdown), Teknologi yang Digunakan (opsional, maks. 200), dan Tautan Proyek (opsional, harus URL `http`/`https`).
+
+**Formulir Tambah Edukasi (`EducationFormPage`, `lib/screens/education_form.dart`)**
+- Field: Nama Institusi (wajib, maks. 100), Jenjang (dropdown SMA/SMK–S3), Jurusan/Program Studi (wajib, maks. 100), Tanggal Mulai (`showDatePicker()`, wajib, tidak boleh di masa depan), switch **Masih berlangsung**, Tanggal Selesai (wajib jika tidak sedang berlangsung, tidak boleh sebelum tanggal mulai), dan IPK (opsional, 0.00–4.00, titik maupun koma diterima).
+
+**Perilaku kedua formulir**
+- Isian kosong atau yang hanya berisi spasi ditolak, dan pesan kesalahan tampil di bawah kolom terkait.
+- Tombol **Simpan** memanggil `FormState.validate()`. Ringkasan isian tampil dalam `AlertDialog` (lewat `showDialog()`) hanya jika semua input valid.
+- Tombol **OK** menutup dialog dan pengguna kembali ke formulir dengan isian yang masih utuh.
+- Seluruh isi formulir dibungkus `SingleChildScrollView`, jadi semua input dan tombol Simpan tetap bisa dijangkau di layar sempit atau saat keyboard tampil.
+
+**Tambahan di luar checklist**
+- Validator dipisah ke `lib/utils/validators.dart` dan diuji dengan unit test.
+- Tombol Simpan (`SaveButton`) dan dialog ringkasan (`showSummaryDialog`) dipakai bersama oleh kedua formulir (`lib/widgets/form_widgets.dart`).
+- Penghitung karakter (`maxLength`), keyboard sesuai tipe data (URL dan angka desimal), serta `textInputAction: next`.
+- Widget test mensimulasikan layar ponsel 390×844 dan menguji alur kartu, drawer, tombol kembali perangkat, input valid/tidak valid, dan dialog.
+- Perbaikan overflow di layar sempit pada `InfoCard`, `ItemCard` (dengan `FittedBox`), dan header drawer.
 
 ## Struktur Proyek
 
 ```
 lib/
-├── main.dart   # MyApp: MaterialApp + tema (seed color indigo)
-└── menu.dart   # MyHomePage, InfoCard, ItemHomepage, ItemCard
+├── main.dart                 # MyApp: MaterialApp + tema (seed color indigo)
+├── screens/
+│   ├── menu.dart             # MyHomePage (halaman utama)
+│   ├── project_form.dart     # ProjectFormPage
+│   └── education_form.dart   # EducationFormPage
+├── widgets/
+│   ├── info_card.dart        # InfoCard
+│   ├── project_card.dart     # ItemHomepage (model) + ItemCard
+│   ├── left_drawer.dart      # LeftDrawer + enum DrawerPage
+│   └── form_widgets.dart     # SaveButton + showSummaryDialog
+└── utils/
+    └── validators.dart       # Validators (logika validasi formulir)
 test/
-└── widget_test.dart
+├── widget_test.dart          # uji UI, navigasi, dan formulir
+└── validators_test.dart      # unit test validator
 ```
 
 ## Cara Menjalankan
+
+Membutuhkan Flutter 3.50 atau lebih baru (proyek memakai paket `material_ui`).
 
 ```bash
 git clone https://github.com/adiradmnk/myportofolio_mobile.git
@@ -46,19 +81,33 @@ flutter test
 | --- | --- | --- |
 | Tutorial 08 | Basic Flutter | Inisialisasi proyek, pemisahan `menu.dart`, `MyHomePage` menjadi `StatelessWidget`, `InfoCard` & `ItemCard`, SnackBar |
 | Tugas 7 | Basic Flutter | Data profil asli, warna unik per tombol via atribut `color` di `ItemHomepage`, dokumentasi kode, README & jawaban reflektif |
+| Tutorial 09 | Navigation, Layouts, Forms | Migrasi ke `material_ui`, `LeftDrawer`, `ProjectFormPage` dengan dialog ringkasan, navigasi kartu, refactor ke `screens/` dan `widgets/` |
+| Tugas 8 | Navigation, Layouts, Forms | `EducationFormPage` dengan date picker dan validasi tanggal/IPK, opsi drawer Add Education, validator terpisah dan teruji, perbaikan layout layar sempit |
 
 ## AI Disclosure
 
 - **Tools:** Claude (Anthropic).
 - **Bagian yang dibantu:**
-  - Menambahkan atribut `color` pada `ItemHomepage` dan memakainya di `ItemCard` (`lib/menu.dart`), serta menambahkan komentar dokumentasi (`///`) pada class.
-  - Menyusun draf README ini, termasuk draf jawaban pertanyaan reflektif Tugas 7.
-- **Strategi prompting:** Saya memberikan seluruh deskripsi tugas (checklist, petunjuk implementasi, rubrik, dan pertanyaan reflektif) beserta kode hasil Tutorial 08, lalu meminta agar perubahan mengikuti petunjuk resmi dan isi README benar-benar sesuai dengan kode yang ada di repositori.
-- **Keterbatasan & pemeriksaan manual:** Keluaran AI tidak langsung saya terima. Saya mengecek ulang bahwa nama tombol, ikon, warna, dan data profil di README cocok dengan `lib/menu.dart`, menjalankan `flutter analyze` dan `flutter test`, serta mencoba aplikasi untuk memastikan SnackBar dan warna tombol tampil sesuai. Jawaban reflektif saya baca ulang dan sesuaikan dengan pemahaman saya sendiri, karena AI cenderung menulis penjelasan umum yang belum tentu mencerminkan widget yang benar-benar dipakai di proyek ini.
+  - Tugas 7: menambahkan atribut `color` pada `ItemHomepage` dan memakainya di `ItemCard`, serta komentar dokumentasi (`///`) pada class.
+  - Tutorial 09 & Tugas 8: refactor ke `lib/screens/` dan `lib/widgets/`, migrasi impor ke `material_ui`, `LeftDrawer`, `ProjectFormPage`, `EducationFormPage`, `Validators`, `SaveButton`/`showSummaryDialog`, serta unit test dan widget test.
+  - Menyusun draf README, termasuk draf jawaban pertanyaan reflektif Tugas 7 dan Tugas 8.
+- **Strategi prompting:** Saya memberikan seluruh teks tugas (checklist, petunjuk, rubrik, pertanyaan reflektif) dan teks Tutorial 09, lalu meminta agar implementasi mengikuti pola tutorial (nama field, `pushReplacement` di drawer, `push` di kartu, struktur folder), agar isi README sesuai dengan kode yang ada, dan agar fitur diuji di layar selebar ponsel.
+- **Log prompting (ringkas):**
+  1. "Kerjakan Tugas 7 sesuai checklist ini; README harus sesuai dengan kode." → warna per tombol + README.
+  2. "Apakah ini sudah memenuhi Tugas 8? Aku ingin nilai 4." → AI mengonfirmasi bahwa Tutorial 09 dan Tugas 8 belum dikerjakan, lalu membuat drawer dan kedua formulir.
+  3. Saya menempelkan teks Tutorial 09 → AI menyesuaikan diri: impor diganti ke `material_ui`, `item_card.dart` diganti nama menjadi `project_card.dart`, dan field formulir proyek disamakan dengan tutorial.
+- **Keterbatasan AI & perbaikan manual/iteratif:**
+  - Versi pertama AI masih memakai `package:flutter/material.dart`, sehingga `flutter analyze` di Flutter 3.50 memberi peringatan deprecated. Masalah ini baru diperbaiki setelah saya memberikan teks Tutorial 09 yang menjelaskan migrasi ke `material_ui`. Pelajarannya, AI tidak selalu tahu perubahan SDK terbaru.
+  - Field formulir proyek versi awal buatan AI (judul, URL, switch unggulan) tidak sama dengan tutorial, jadi saya minta disesuaikan.
+  - Widget test di layar 390×844 menemukan overflow yang tidak terlihat dari kode saja: `InfoCard` yang memakai lebar tetap `width / 3.5` (sudah ada sejak Tugas 7), teks `ItemCard`, dan `DrawerHeader` yang tingginya tetap. Ketiganya diperbaiki dengan `Expanded`, `FittedBox`, dan `Container`.
+  - Test awal buatan AI gagal karena mengira formulir memiliki tombol back di AppBar, padahal AppBar menampilkan ikon drawer. Test diubah agar mensimulasikan tombol kembali perangkat (`handlePopRoute`).
+  - Saya mengecek bahwa nama tombol, field, batasan validasi, dan struktur folder di README cocok dengan kode, lalu menjalankan `flutter analyze` (No issues found) dan `flutter test`. Jawaban reflektif saya baca ulang dan sesuaikan dengan pemahaman saya sendiri.
 
 ## Pertanyaan Reflektif
 
 ### Tugas 7
+
+> Catatan: jawaban ini ditulis berdasarkan kode saat Tugas 7. Sejak Tutorial 09, `menu.dart` dipindah ke `lib/screens/`, dan `InfoCard` tidak lagi memakai `Container` dengan lebar `MediaQuery` melainkan dibungkus `Expanded`.
 
 1. **Widget tree dan hubungan parent-child.**
    Di Flutter, seluruh UI disusun dari widget yang saling bersarang membentuk struktur pohon (widget tree). Setiap widget bisa memiliki satu anak (`child`) atau banyak anak (`children`). Parent menentukan konteks dan batasan (constraints) bagi anaknya, misalnya ukuran maksimal, posisi, padding, atau tema; anak kemudian menentukan ukurannya sendiri di dalam batasan itu lalu melaporkannya ke parent ("constraints go down, sizes go up, parent sets position"). Data seperti `Theme` dan `ScaffoldMessenger` juga diwariskan dari atas ke bawah sehingga dapat diakses oleh widget keturunan. Di proyek ini pohonnya kira-kira: `MyApp` → `MaterialApp` → `MyHomePage` → `Scaffold` → (`AppBar`, `Padding` → `Column` → (`Row` berisi 3 `InfoCard`, `SizedBox`, `Center` → `Column` → (`Text`, `GridView` berisi 3 `ItemCard`))).
@@ -97,3 +146,17 @@ flutter test
 
 6. **Hot reload vs hot restart.**
    Hot reload menyuntikkan kode Dart yang telah diubah ke Dart VM yang sedang berjalan lalu membangun ulang widget tree, sehingga perubahan UI terlihat dalam hitungan detik **tanpa menghapus state** (misalnya isi form atau nilai counter tetap). Hot restart memuat ulang seluruh kode dan menjalankan aplikasi dari awal (`main()` dipanggil lagi), sehingga **state hilang**, tetapi masih lebih cepat daripada build ulang penuh. Hot reload tidak cukup ketika perubahan tidak tercermin lewat `build` ulang, misalnya: mengubah `main()` atau `initState()`, mengubah inisialisasi variabel global/static, mengganti `StatelessWidget` menjadi `StatefulWidget` (atau sebaliknya), mengubah tipe generic atau mengubah class menjadi enum; pada kasus ini perlu hot restart. Full restart (stop lalu `flutter run` lagi) diperlukan saat mengubah kode native (Android/iOS), menambah dependency/plugin di `pubspec.yaml`, atau mengubah aset dan konfigurasi platform.
+
+### Tugas 8
+
+1. **`push()`, `pushReplacement()`, dan `pop()`.**
+   `Navigator` menyimpan halaman (route) sebagai stack. `Navigator.push()` menaruh route baru di atas stack, sehingga halaman lama tetap ada di bawahnya dan pengguna bisa kembali. `Navigator.pushReplacement()` mengganti route paling atas dengan route baru, sehingga halaman lama dibuang dan tidak bisa dikunjungi lagi dengan tombol kembali. `Navigator.pop()` membuang route paling atas sehingga halaman di bawahnya tampil lagi; di proyek ini `pop` juga dipakai untuk menutup drawer dan menutup `AlertDialog`, karena keduanya juga berupa route. Kartu **Tambah Proyek** dan **Tambah Edukasi** memakai `Navigator.push()` (di `ItemCard`, berdasarkan atribut `destination` milik `ItemHomepage`), sehingga stack berisi `[MyHomePage, Form]` dan tombol kembali perangkat/browser membawa pengguna ke menu. Opsi **Home** di `LeftDrawer` pertama-tama memanggil `Navigator.pop(context)` untuk menutup drawer, lalu `Navigator.pushReplacement()` dengan `MyHomePage()`, sehingga halaman formulir yang sedang terbuka diganti oleh halaman utama. Jika pengguna sudah berada di halaman tersebut (dicek dengan enum `DrawerPage`), drawer hanya ditutup agar tidak membuat halaman duplikat.
+
+2. **Konsistensi lewat `Scaffold`, `AppBar`, dan `Drawer`.**
+   `Scaffold` memberi kerangka yang sama untuk setiap halaman: slot `appBar` di atas, `drawer` di kiri, dan `body` untuk konten. Ketiga halaman (`MyHomePage`, `ProjectFormPage`, `EducationFormPage`) memakai susunan yang sama: `AppBar` dengan judul putih tebal dan ikon putih, serta widget `LeftDrawer` yang sama (hanya parameter `current` yang berbeda). Karena drawer berupa satu widget di `lib/widgets/left_drawer.dart`, menambah opsi baru (seperti Add Education) cukup dilakukan sekali dan langsung muncul di semua halaman. Contoh warna tema: `Theme.of(context).colorScheme.primary`, yang berasal dari `ColorScheme.fromSeed(seedColor: Colors.indigo)` di `main.dart`, dipakai sebagai `backgroundColor` `AppBar` di ketiga halaman, sebagai latar header drawer, dan sebagai warna tombol Simpan (`SaveButton`) di kedua formulir. Jika seed color diganti, semua bagian itu ikut berubah.
+
+3. **Pemilihan tata letak formulir.**
+   Formulir disusun dalam satu `Column` vertikal dengan `crossAxisAlignment: CrossAxisAlignment.stretch`, sehingga setiap input dan tombol Simpan selebar layar. Urutan field mengikuti cara orang membaca dari atas ke bawah, dan tombol Simpan diletakkan paling bawah setelah semua isian, yang paling mudah dijangkau di ponsel. `SizedBox(height: 12)` di antara field memberi jarak yang konsisten agar input tidak berdempetan, sedangkan `padding: EdgeInsets.all(16)` pada `SingleChildScrollView` memberi jarak dari tepi layar. `SingleChildScrollView` menjadi kunci di layar sempit: `Column` sendiri tidak bisa digulir, sehingga saat keyboard muncul dan tinggi layar yang tersisa mengecil, isi formulir akan overflow. Dengan penggulir, pengguna tetap bisa menggulir sampai Simpan. Formulir edukasi bisa bertambah panjang karena field Tanggal Selesai muncul jika switch "Masih berlangsung" dimatikan, dan penggulir menampung perubahan itu. Hal ini diuji di `test/widget_test.dart` dengan ukuran layar 390×844 dan `ensureVisible` pada tombol Simpan.
+
+4. **`GlobalKey<FormState>`, `validator`, dan `validate()`.**
+   `GlobalKey<FormState>` (`_formKey`) dipasang pada widget `Form` sehingga state formulir bisa diakses dari luar field, misalnya dari tombol Simpan, lewat `_formKey.currentState`. Setiap `TextFormField` memiliki `validator` yang mengembalikan `null` jika valid atau sebuah pesan kesalahan. Saat Simpan ditekan, `_formKey.currentState!.validate()` menjalankan semua validator sekaligus, menampilkan pesan kesalahan di bawah field yang gagal, dan mengembalikan `true` hanya jika semuanya lolos. Setelah itu `save()` memanggil `onSaved` tiap field untuk menyimpan nilai yang sudah di-`trim()`, lalu `showSummaryDialog()` menampilkan `AlertDialog`. Contoh nilai yang ditolak: IPK `4.5` atau `3.7a`. Walaupun field IPK memakai `TextInputType.numberWithOptions(decimal: true)`, keyboard hanya sekadar saran tampilan. Di browser atau dengan keyboard fisik pengguna tetap bisa mengetik huruf, menempel teks, atau memasukkan angka di luar rentang 0–4, dan keyboard angka sama sekali tidak tahu aturan "maksimal 4.00". Begitu pula isian `   ` (hanya spasi) di Nama Institusi yang secara teknis tidak kosong, URL `github.com/user` tanpa `https://` di keyboard URL, atau tanggal selesai yang lebih awal dari tanggal mulai meskipun dipilih lewat date picker. Aturan seperti ini hanya bisa ditegakkan oleh `validator` (di proyek ini dipusatkan di `Validators`).
