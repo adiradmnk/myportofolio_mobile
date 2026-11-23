@@ -1,10 +1,10 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:myportofolio_mobile/screens/education_form.dart';
+import 'package:myportofolio_mobile/screens/experience_form.dart';
 import 'package:myportofolio_mobile/screens/menu.dart';
 import 'package:myportofolio_mobile/screens/project_form.dart';
 
 /// Penanda halaman yang sedang aktif, dipakai untuk menyorot opsi drawer.
-enum DrawerPage { home, addProject, addEducation }
+enum DrawerPage { home, addProject, addExperience }
 
 /// Drawer yang sama untuk halaman utama dan semua halaman formulir.
 class LeftDrawer extends StatelessWidget {
@@ -55,7 +55,7 @@ class LeftDrawer extends StatelessWidget {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Kelola proyek dan edukasi portofoliomu!',
+                  'Kelola proyek dan pengalaman portofoliomu!',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 14, color: Colors.white),
                 ),
@@ -80,13 +80,13 @@ class LeftDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.school_outlined),
-            title: const Text('Add Education'),
-            selected: current == DrawerPage.addEducation,
+            leading: const Icon(Icons.work_outline),
+            title: const Text('Add Experience'),
+            selected: current == DrawerPage.addExperience,
             onTap: () => _navigate(
               context,
-              DrawerPage.addEducation,
-              (_) => const EducationFormPage(),
+              DrawerPage.addExperience,
+              (_) => const ExperienceFormPage(),
             ),
           ),
         ],

@@ -28,7 +28,7 @@ void main() {
     expect(find.text('PBP E'), findsOneWidget);
     expect(find.text('Lihat Proyek'), findsOneWidget);
     expect(find.text('Tambah Proyek'), findsOneWidget);
-    expect(find.text('Tambah Edukasi'), findsOneWidget);
+    expect(find.text('Tambah Pengalaman'), findsOneWidget);
     expect(find.text('Logout'), findsOneWidget);
   });
 
@@ -46,15 +46,15 @@ void main() {
     );
   });
 
-  testWidgets('Kartu Tambah Edukasi membuka formulir dan bisa kembali', (
+  testWidgets('Kartu Tambah Pengalaman membuka formulir dan bisa kembali', (
     WidgetTester tester,
   ) async {
     await _usePhoneSize(tester);
     await tester.pumpWidget(const MyApp());
 
-    await tester.tap(find.text('Tambah Edukasi'));
+    await tester.tap(find.text('Tambah Pengalaman'));
     await tester.pumpAndSettle();
-    expect(find.text('Nama Institusi'), findsOneWidget);
+    expect(find.text('Judul Pengalaman'), findsOneWidget);
 
     // Simulasi tombol kembali bawaan perangkat (Android back button).
     // Bisa kembali karena formulir dibuka dengan Navigator.push().
@@ -69,8 +69,8 @@ void main() {
     await _usePhoneSize(tester);
     await tester.pumpWidget(const MyApp());
 
-    await _openDrawerItem(tester, 'Add Education');
-    expect(find.text('Nama Institusi'), findsOneWidget);
+    await _openDrawerItem(tester, 'Add Experience');
+    expect(find.text('Judul Pengalaman'), findsOneWidget);
 
     await _openDrawerItem(tester, 'Add Project');
     expect(find.text('Nama Proyek'), findsOneWidget);
@@ -79,65 +79,70 @@ void main() {
     expect(find.text('2506656375'), findsOneWidget);
   });
 
-  testWidgets('Formulir edukasi menolak input kosong lalu menampilkan dialog', (
-    WidgetTester tester,
-  ) async {
-    await _usePhoneSize(tester);
-    await tester.pumpWidget(const MyApp());
-    await _openDrawerItem(tester, 'Add Education');
+  testWidgets(
+    'Formulir pengalaman menolak input kosong lalu menampilkan dialog',
+    (WidgetTester tester) async {
+      await _usePhoneSize(tester);
+      await tester.pumpWidget(const MyApp());
+      await _openDrawerItem(tester, 'Add Experience');
 
-    final save = find.text('Simpan');
+      final save = find.text('Simpan');
 
-    // Input tidak valid: semua kosong / hanya spasi.
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Nama Institusi'),
-      '   ',
-    );
-    await tester.ensureVisible(save);
-    await tester.tap(save);
-    await tester.pumpAndSettle();
-    expect(find.text('Nama institusi tidak boleh kosong!'), findsOneWidget);
-    expect(find.text('Tanggal mulai wajib dipilih!'), findsOneWidget);
-    expect(find.byType(AlertDialog), findsNothing);
+      // Input tidak valid: judul hanya spasi, deskripsi dan tanggal kosong.
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Judul Pengalaman'),
+        '   ',
+      );
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(find.text('Judul pengalaman tidak boleh kosong!'), findsOneWidget);
+      expect(find.text('Deskripsi tidak boleh kosong!'), findsOneWidget);
+      expect(
+        find.text('Pilih tanggal selesai atau tandai "Masih berlangsung"!'),
+        findsOneWidget,
+      );
+      expect(find.byType(AlertDialog), findsNothing);
 
-    // Input valid.
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Nama Institusi'),
-      'Universitas Indonesia',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Jurusan / Program Studi'),
-      'Ilmu Komputer',
-    );
-    await tester.tap(find.widgetWithText(TextFormField, 'Tanggal Mulai'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Masih berlangsung'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'IPK (opsional)'),
-      '3,80',
-    );
+      // Input valid.
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Judul Pengalaman'),
+        'Software Engineer Intern',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Deskripsi'),
+        'Membangun fitur aplikasi mobile.',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'URL Thumbnail / Logo (opsional)'),
+        'https://github.com/adiradmnk',
+      );
+      await tester.ensureVisible(find.text('Masih berlangsung'));
+      await tester.tap(find.text('Masih berlangsung'));
+      await tester.pumpAndSettle();
 
-    await tester.ensureVisible(save);
-    await tester.tap(save);
-    await tester.pumpAndSettle();
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
 
-    expect(find.byType(AlertDialog), findsOneWidget);
-    Finder inDialog(String text) => find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.textContaining(text, findRichText: true),
-    );
-    expect(inDialog('Institusi: Universitas Indonesia'), findsOneWidget);
-    expect(inDialog('Tanggal Selesai: Masih berlangsung'), findsOneWidget);
-    expect(inDialog('IPK: 3.80'), findsOneWidget);
+      Finder inDialog(String text) => find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.textContaining(text, findRichText: true),
+      );
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(
+        inDialog('Judul Pengalaman: Software Engineer Intern'),
+        findsOneWidget,
+      );
+      expect(inDialog('Kategori: Full-Time'), findsOneWidget);
+      expect(inDialog('Tanggal Selesai: Masih berlangsung'), findsOneWidget);
 
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsNothing);
-    expect(find.text('Tambah Edukasi'), findsOneWidget);
-  });
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('Add Experience Form'), findsOneWidget);
+    },
+  );
 
   testWidgets('Formulir proyek menolak URL tidak valid', (
     WidgetTester tester,
@@ -150,6 +155,10 @@ void main() {
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Nama Proyek'),
       'MyPortfolio',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Peran / Posisi'),
+      'Fullstack Developer',
     );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Deskripsi Proyek'),
