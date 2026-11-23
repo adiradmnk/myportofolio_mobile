@@ -4,6 +4,10 @@ import 'package:myportofolio_mobile/widgets/form_widgets.dart';
 import 'package:myportofolio_mobile/widgets/left_drawer.dart';
 
 /// Formulir Tambah Proyek (Tutorial 09).
+///
+/// Field mengikuti Tutorial 09, ditambah `Peran / Posisi` dari model
+/// `Project` di repositori Django `myportofolio` (`title`, `role`,
+/// `description`, `link`).
 class ProjectFormPage extends StatefulWidget {
   const ProjectFormPage({super.key});
 
@@ -23,6 +27,7 @@ class _ProjectFormPageState extends State<ProjectFormPage> {
   ];
 
   String _projectName = '';
+  String _role = '';
   String _description = '';
   String _category = _categories.first;
   String _technologies = '';
@@ -37,6 +42,7 @@ class _ProjectFormPageState extends State<ProjectFormPage> {
       title: 'Proyek berhasil ditambahkan!',
       entries: {
         'Nama Proyek': _projectName,
+        'Peran / Posisi': _role,
         'Deskripsi': _description,
         'Kategori': _category,
         'Teknologi': _technologies.isEmpty ? '-' : _technologies,
@@ -70,14 +76,30 @@ class _ProjectFormPageState extends State<ProjectFormPage> {
                   hintText: 'Contoh: MyPortfolio Web',
                   border: OutlineInputBorder(),
                 ),
-                maxLength: 100,
+                maxLength: 255,
                 textInputAction: TextInputAction.next,
                 validator: (value) => Validators.requiredText(
                   value,
                   fieldName: 'Nama proyek',
-                  maxLength: 100,
+                  maxLength: 255,
                 ),
                 onSaved: (value) => _projectName = value!.trim(),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Peran / Posisi',
+                  hintText: 'Frontend Developer, Lead, dll.',
+                  border: OutlineInputBorder(),
+                ),
+                maxLength: 255,
+                textInputAction: TextInputAction.next,
+                validator: (value) => Validators.requiredText(
+                  value,
+                  fieldName: 'Peran / posisi',
+                  maxLength: 255,
+                ),
+                onSaved: (value) => _role = value!.trim(),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -88,11 +110,9 @@ class _ProjectFormPageState extends State<ProjectFormPage> {
                   alignLabelWithHint: true,
                 ),
                 maxLines: 5,
-                maxLength: 500,
                 validator: (value) => Validators.requiredText(
                   value,
                   fieldName: 'Deskripsi proyek',
-                  maxLength: 500,
                 ),
                 onSaved: (value) => _description = value!.trim(),
               ),
