@@ -2,10 +2,18 @@ import 'package:material_ui/material_ui.dart';
 
 /// Tombol Simpan lebar penuh dengan warna primary tema, dipakai oleh semua
 /// halaman formulir agar tampilannya seragam.
+///
+/// Saat [isLoading] bernilai `true`, tombol dinonaktifkan dan menampilkan
+/// indikator loading agar data tidak terkirim dua kali.
 class SaveButton extends StatelessWidget {
   final VoidCallback onPressed;
+  final bool isLoading;
 
-  const SaveButton({super.key, required this.onPressed});
+  const SaveButton({
+    super.key,
+    required this.onPressed,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,8 +26,14 @@ class SaveButton extends StatelessWidget {
           foregroundColor: colorScheme.onPrimary,
           padding: const EdgeInsets.symmetric(vertical: 14),
         ),
-        onPressed: onPressed,
-        icon: const Icon(Icons.save),
+        onPressed: isLoading ? null : onPressed,
+        icon: isLoading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.save),
         label: const Text('Simpan'),
       ),
     );
