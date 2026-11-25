@@ -1,25 +1,39 @@
 # MyPortfolio Mobile
 
-Aplikasi mobile Flutter untuk portofolio pribadi milik **Adriana Ainurrahmah Damanik** (NPM 2506656375, kelas PBP E). Aplikasi ini adalah perluasan dari website portofolio Django ke ranah mobile, dikerjakan untuk mata kuliah Pemrograman Berbasis Platform (PBP) Fasilkom UI, Gasal 2026/2027.
+Aplikasi mobile Flutter untuk portofolio pribadi milik **Adriana Ainurrahmah Damanik** (NPM 2506656375, kelas PBP E). Aplikasi ini adalah perluasan dari website portofolio Django ([`adiradmnk/myportofolio`](https://github.com/adiradmnk/myportofolio)) ke ranah mobile, dikerjakan untuk mata kuliah Pemrograman Berbasis Platform (PBP) Fasilkom UI, Gasal 2026/2027. Sejak Tutorial 10, aplikasi mengambil dan mengirim data proyek ke REST API Django dengan autentikasi token.
+
+[![CI](https://github.com/adiradmnk/myportofolio_mobile/actions/workflows/main.yaml/badge.svg)](https://github.com/adiradmnk/myportofolio_mobile/actions/workflows/main.yaml)
 
 ## Fitur Saat Ini
 
 **Halaman utama (`MyHomePage`, `lib/screens/menu.dart`)**
 - Tiga `InfoCard` berisi NPM, Name, dan Class. Lebarnya dibagi rata dengan `Expanded` dan tingginya disamakan dengan `IntrinsicHeight`, jadi tetap muat di layar ponsel.
-- Empat `ItemCard` dalam `GridView` dengan warna latar berbeda yang disimpan di model `ItemHomepage` (`name`, `icon`, `color`, `destination`):
-  - **Lihat Proyek** (`Icons.folder`, biru): menampilkan SnackBar.
-  - **Tambah Proyek** (`Icons.add_circle`, hijau): SnackBar, lalu membuka `ProjectFormPage` dengan `Navigator.push()`.
-  - **Tambah Pengalaman** (`Icons.work`, ungu): SnackBar, lalu membuka `ExperienceFormPage` dengan `Navigator.push()`.
-  - **Logout** (`Icons.logout`, merah): menampilkan SnackBar.
+- Empat `ItemCard` dalam `GridView` dengan warna latar berbeda yang disimpan di model `ItemHomepage` (`name`, `icon`, `color`, `destination`, `requiresLogin`, `action`):
+  - **Lihat Proyek** (`Icons.folder`, biru): membuka `ProjectListScreen` (tanpa login).
+  - **Tambah Proyek** (`Icons.add_circle`, hijau): meminta login jika belum, lalu membuka `ProjectFormPage` dengan `Navigator.push()`.
+  - **Tambah Pengalaman** (`Icons.work`, ungu): meminta login jika belum, lalu membuka `ExperienceFormPage` dengan `Navigator.push()`.
+  - **Logout** (`Icons.logout`, merah): mencabut token (`POST /api/v1/auth/logout/`) jika sudah login.
 - Setiap tombol menampilkan SnackBar "Kamu telah menekan tombol [Nama Tombol]!".
 
 **Drawer (`LeftDrawer`, `lib/widgets/left_drawer.dart`)**
-- Opsi **Home**, **Add Project**, dan **Add Experience**. Drawer yang sama dipakai di halaman utama dan kedua halaman formulir.
+- Opsi **Home**, **Project List**, **Add Project**, **Add Experience**, serta **Login** atau **Logout** (bergantian sesuai status login lewat `context.watch<AuthState>()`). Drawer yang sama dipakai di semua halaman.
+- Add Project dan Add Experience dilindungi `ensureLoggedIn()`. Jika pengguna logout dari halaman formulir, ia dikembalikan ke Home.
 - Berpindah halaman memakai `Navigator.pushReplacement()`. Opsi halaman yang sedang aktif disorot (`selected`), dan jika ditekan hanya menutup drawer tanpa membuat halaman baru.
 
+**Integrasi backend (Tutorial 10)**
+- `ApiClient` (`lib/services/api_client.dart`) membungkus `http.Client` untuk `GET`/`POST /api/v1/projects/`, `POST /api/v1/auth/token/`, dan `POST /api/v1/auth/logout/`. Status non-2xx dilempar sebagai `ApiException`, yang punya `userMessage` ramah pengguna sehingga body error mentah (mis. halaman HTML saat `DEBUG=True`) tidak ditampilkan.
+- `AuthState` (`ChangeNotifier`, `lib/services/auth_state.dart`) menyimpan token di memori. Saat logout, token lokal tetap dihapus walaupun server menolak atau tidak terjangkau.
+- `MultiProvider` di `main.dart` menyisipkan `ApiClient` dan `AuthState` ke widget tree. `ApiClient` diterima dari luar (`MyApp(apiClient: ...)`) agar bisa diganti `MockClient` saat test.
+- Model `Project` (`lib/models/project.dart`) memakai `@JsonSerializable(fieldRename: FieldRename.snake)` dan mengikuti `ProjectSerializer` milikku (`id`, `title`, `role`, `description`, `link`, `star_count`). Field read-only (`id`, `star_count`) tidak dikirim saat POST, dan `link` yang `null` menjadi `''`.
+- `ProjectListScreen` memakai `FutureBuilder` (Future dibuat di `initState`) dan `RefreshIndicator` (pull-to-refresh, termasuk saat daftar kosong), serta tombol Coba Lagi jika gagal. Kartu proyek membuka `ProjectDetailScreen`.
+- `LoginScreen` dan `ensureLoggedIn()` (`lib/widgets/auth_guard.dart`) sebagai route guard.
+- `lib/config.dart`: URL backend diatur lewat `--dart-define=API_BASE_URL=...` (default `http://10.0.2.2:8000` untuk emulator Android).
+- `AndroidManifest.xml`: izin `INTERNET` dan `usesCleartextTraffic` untuk HTTP lokal.
+
 **Formulir Tambah Proyek (`ProjectFormPage`, `lib/screens/project_form.dart`)**
-- Field dari Tutorial 09: Nama Proyek, Deskripsi Proyek, Kategori Proyek (dropdown), Teknologi yang Digunakan, dan Tautan Proyek. Ditambah **Peran / Posisi** karena field `role` ada di model `Project` milikku.
-- Validasi mengikuti model `Project`: Nama Proyek dan Peran wajib diisi, maks. 255 karakter (`CharField(max_length=255)`). Deskripsi wajib diisi tanpa batas panjang (`TextField`). Teknologi opsional (maks. 200). Tautan opsional, tetapi jika diisi harus berupa URL `http`/`https` dan maks. 200 karakter (`URLField`).
+- Field mengikuti `ProjectSerializer` milikku (bukan contoh Burhan): Nama Proyek (`title`), Peran / Posisi (`role`), Deskripsi Proyek (`description`), dan Link Proyek (`link`). Field Kategori dan Teknologi dari Tutorial 09 dihapus karena tidak ada di serializer.
+- Validasi: Nama Proyek dan Peran wajib diisi, maks. 255 karakter (`CharField(max_length=255)`). Deskripsi wajib diisi (`TextField`). Link opsional, tetapi jika diisi harus URL `http`/`https` dan maks. 200 karakter (`URLField`).
+- Simpan: validasi → `ensureLoggedIn()` → `createProject()` dengan header `Authorization: Token <key>` → dialog berisi data yang dikembalikan server (201). Respons 401 membuat aplikasi logout lalu meminta login ulang; error lain (400/403/500, tidak ada koneksi) tampil sebagai SnackBar. Tombol Simpan menampilkan loading dan dinonaktifkan selama request berjalan.
 
 **Formulir Tambah Pengalaman (`ExperienceFormPage`, `lib/screens/experience_form.dart`)**
 
@@ -35,9 +49,9 @@ Field dan aturannya mengikuti model `Experience` dan `ExperienceForm` di reposit
 
 `started_at` tidak dimasukkan ke formulir karena di model diisi otomatis (`auto_now_add=True`).
 
-**Perilaku kedua formulir**
+**Perilaku formulir**
 - Isian kosong atau yang hanya berisi spasi ditolak, dan pesan kesalahan tampil di bawah kolom terkait.
-- Tombol **Simpan** memanggil `FormState.validate()`. Ringkasan isian tampil dalam `AlertDialog` (lewat `showDialog()`) hanya jika semua input valid.
+- Tombol **Simpan** memanggil `FormState.validate()`. Ringkasan isian tampil dalam `AlertDialog` (lewat `showDialog()`) hanya jika semua input valid (untuk proyek: setelah server membalas 201). Formulir Pengalaman masih lokal dan akan dihubungkan ke `/api/v1/experience/` pada Tugas 9.
 - Tombol **OK** menutup dialog dan pengguna kembali ke formulir dengan isian yang masih utuh.
 - Seluruh isi formulir dibungkus `SingleChildScrollView`, jadi semua input dan tombol Simpan tetap bisa dijangkau di layar sempit atau saat keyboard tampil.
 
@@ -46,28 +60,45 @@ Field dan aturannya mengikuti model `Experience` dan `ExperienceForm` di reposit
 - Tombol Simpan (`SaveButton`) dan dialog ringkasan (`showSummaryDialog`) dipakai bersama oleh kedua formulir (`lib/widgets/form_widgets.dart`).
 - Penghitung karakter (`maxLength`), keyboard URL untuk field tautan dan thumbnail, serta `textInputAction: next`.
 - Widget test mensimulasikan layar ponsel 390×844 dan menguji alur kartu, drawer, tombol kembali perangkat, input valid/tidak valid, dan dialog.
+- Test integrasi tanpa server: `test/helpers/fake_backend.dart` meniru endpoint DRF dengan `MockClient` (token valid/kedaluwarsa, 400/401/500), dipakai oleh `api_client_test.dart` dan `widget_test.dart`.
+- CI/CD GitHub Actions (`.github/workflows/main.yaml`): job `build` (very_good_workflows: build_runner, format, analyze, test + coverage) dan job `build_apk` yang mengunggah artefak `app-release-apk`.
 - Perbaikan overflow di layar sempit pada `InfoCard`, `ItemCard` (dengan `FittedBox`), dan header drawer.
 
 ## Struktur Proyek
 
 ```
 lib/
-├── main.dart                 # MyApp: MaterialApp + tema (seed color indigo)
+├── main.dart                     # MyApp: MultiProvider + MaterialApp
+├── config.dart                   # apiBaseUrl (--dart-define=API_BASE_URL)
+├── models/
+│   └── project.dart              # Project (@JsonSerializable) -> project.g.dart
+├── services/
+│   ├── api_client.dart           # ApiClient + ApiException
+│   └── auth_state.dart           # AuthState (ChangeNotifier)
 ├── screens/
-│   ├── menu.dart             # MyHomePage (halaman utama)
-│   ├── project_form.dart     # ProjectFormPage
-│   └── experience_form.dart  # ExperienceFormPage
+│   ├── menu.dart                 # MyHomePage (halaman utama)
+│   ├── project_list_screen.dart  # ProjectListScreen (FutureBuilder)
+│   ├── project_detail_screen.dart# ProjectDetailScreen
+│   ├── project_form.dart         # ProjectFormPage (POST ke API)
+│   ├── experience_form.dart      # ExperienceFormPage
+│   └── login_screen.dart         # LoginScreen
 ├── widgets/
-│   ├── info_card.dart        # InfoCard
-│   ├── project_card.dart     # ItemHomepage (model) + ItemCard
-│   ├── left_drawer.dart      # LeftDrawer + enum DrawerPage
-│   └── form_widgets.dart     # SaveButton + showSummaryDialog
+│   ├── info_card.dart            # InfoCard
+│   ├── project_card.dart         # ItemHomepage (model) + ItemCard
+│   ├── left_drawer.dart          # LeftDrawer + enum DrawerPage
+│   ├── auth_guard.dart           # ensureLoggedIn()
+│   └── form_widgets.dart         # SaveButton + showSummaryDialog
 └── utils/
-    └── validators.dart       # Validators (logika validasi formulir)
+    └── validators.dart           # Validators (logika validasi formulir)
 test/
-├── widget_test.dart          # uji UI, navigasi, dan formulir
-└── validators_test.dart      # unit test validator
+├── helpers/fake_backend.dart     # backend DRF palsu (MockClient)
+├── api_client_test.dart          # model JSON, ApiClient, AuthState
+├── widget_test.dart              # UI, navigasi, login, formulir
+└── validators_test.dart          # unit test validator
+.github/workflows/main.yaml       # CI (analyze + test) dan CD (APK)
 ```
+
+`*.g.dart` tidak di-commit (ada di `.gitignore`) dan dibuat ulang dengan `build_runner`.
 
 ## Cara Menjalankan
 
@@ -77,8 +108,26 @@ Membutuhkan Flutter 3.50 atau lebih baru (proyek memakai paket `material_ui`).
 git clone https://github.com/adiradmnk/myportofolio_mobile.git
 cd myportofolio_mobile
 flutter pub get
-flutter run
+dart run build_runner build --delete-conflicting-outputs
 ```
+
+Jalankan backend Django (`adiradmnk/myportofolio`) di terminal lain:
+
+```bash
+python manage.py migrate
+python manage.py runserver
+```
+
+Lalu jalankan aplikasi sesuai target:
+
+| Target | Perintah |
+| --- | --- |
+| Emulator Android | `flutter run` (default `http://10.0.2.2:8000`) |
+| Chrome | `flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000` |
+| HP Android (USB) | `adb reverse tcp:8000 tcp:8000` lalu `flutter run --dart-define=API_BASE_URL=http://localhost:8000` |
+| Backend PWS | `flutter run --dart-define=API_BASE_URL=https://adriana-ainurrahmah-myportofolio.pws.cs.ui.ac.id` |
+
+Login memakai akun Django (superuser untuk menambah proyek).
 
 Pemeriksaan kualitas kode dan test:
 
@@ -95,6 +144,7 @@ flutter test
 | Tugas 7 | Basic Flutter | Data profil asli, warna unik per tombol via atribut `color` di `ItemHomepage`, dokumentasi kode, README & jawaban reflektif |
 | Tutorial 09 | Navigation, Layouts, Forms | Migrasi ke `material_ui`, `LeftDrawer`, `ProjectFormPage` dengan dialog ringkasan, navigasi kartu, refactor ke `screens/` dan `widgets/` |
 | Tugas 8 | Navigation, Layouts, Forms | `ExperienceFormPage` sesuai model `Experience` (date picker, switch masih berlangsung, validasi panjang/URL/tanggal), field `role` di formulir proyek sesuai model `Project`, opsi drawer Add Experience, validator terpisah dan teruji, perbaikan layout layar sempit |
+| Tutorial 10 | Backend Integration, Auth, CI/CD | Token auth + CORS + endpoint login/logout di Django, model `Project` json_serializable, `ApiClient`, `AuthState` + `MultiProvider`, daftar/detail proyek dengan `FutureBuilder`, `LoginScreen` + route guard, POST proyek bertoken, test dengan `MockClient`, GitHub Actions CI/CD |
 
 ## AI Disclosure
 
@@ -102,6 +152,8 @@ flutter test
 - **Bagian yang dibantu:**
   - Tugas 7: menambahkan atribut `color` pada `ItemHomepage` dan memakainya di `ItemCard`, serta komentar dokumentasi (`///`) pada class.
   - Tutorial 09 & Tugas 8: refactor ke `lib/screens/` dan `lib/widgets/`, migrasi impor ke `material_ui`, `LeftDrawer`, `ProjectFormPage`, `ExperienceFormPage`, `Validators`, `SaveButton`/`showSummaryDialog`, serta unit test dan widget test.
+  - Tutorial 10 (Django): `TokenAuthentication`, `django-cors-headers`, endpoint `auth/token/` dan `auth/logout/`, penyesuaian test API (403 → 401 untuk tamu), dan test baru untuk token.
+  - Tutorial 10 (Flutter): model `Project`, `ApiClient`, `AuthState`, `LoginScreen`, `ensureLoggedIn`, daftar/detail proyek, POST bertoken, `FakeBackend` + test, dan workflow GitHub Actions.
   - Menyusun draf README, termasuk draf jawaban pertanyaan reflektif Tugas 7 dan Tugas 8.
 - **Strategi prompting:** Saya memberikan seluruh teks tugas (checklist, petunjuk, rubrik, pertanyaan reflektif) dan teks Tutorial 09, lalu meminta agar implementasi mengikuti pola tutorial (nama field, `pushReplacement` di drawer, `push` di kartu, struktur folder), agar isi README sesuai dengan kode yang ada, dan agar fitur diuji di layar selebar ponsel.
 - **Log prompting (ringkas):**
@@ -109,9 +161,13 @@ flutter test
   2. "Apakah ini sudah memenuhi Tugas 8? Aku ingin nilai 4." → AI mengonfirmasi bahwa Tutorial 09 dan Tugas 8 belum dikerjakan, lalu membuat drawer dan kedua formulir.
   3. Saya menempelkan teks Tutorial 09 → AI menyesuaikan diri: impor diganti ke `material_ui`, `item_card.dart` diganti nama menjadi `project_card.dart`, dan field formulir proyek disamakan dengan tutorial.
   4. "Apakah sudah mengikuti repo `myportofolio` aku?" → AI membaca `main/models.py` dan `main/forms.py`, lalu menemukan bahwa tidak ada model Education. Formulir Edukasi diganti menjadi Formulir Pengalaman (`Experience`), formulir proyek ditambahi field `role`, dan batas validasi disesuaikan dengan model.
+  5. Saya menempelkan teks Tutorial 10 → AI mengerjakan bagian Django dan Flutter. Field model disesuaikan dengan `ProjectSerializer` milikku, bukan contoh di tutorial.
 - **Keterbatasan AI & perbaikan manual/iteratif:**
   - Versi pertama AI masih memakai `package:flutter/material.dart`, sehingga `flutter analyze` di Flutter 3.50 memberi peringatan deprecated. Masalah ini baru diperbaiki setelah saya memberikan teks Tutorial 09 yang menjelaskan migrasi ke `material_ui`. Pelajarannya, AI tidak selalu tahu perubahan SDK terbaru.
   - Kesalahan terbesar: AI awalnya membuat formulir **Edukasi** dengan field umum (institusi, jenjang, IPK) tanpa mengecek repositori Django-ku, padahal di sana tidak ada model Education. Hal ini baru ketahuan setelah saya bertanya apakah formulirnya sudah mengikuti repo `myportofolio`. Formulir lalu diganti menjadi **Pengalaman** sesuai model `Experience`. Pelajarannya, AI cenderung mengarang struktur data yang masuk akal kalau tidak diberi sumber yang sebenarnya, jadi model data harus selalu dicek ke kode aslinya.
+  - Tutorial 10 memakai field contoh Burhan (`tech_stack`, `project_url`, `project_image_url`), padahal `ProjectSerializer` milikku berisi `title`, `role`, `description`, `link`. Model Flutter dan formulir disesuaikan dengan serializer milikku sesuai prinsip tutorial ("sesuaikan klien dengan skema backend"). Karena serializer-ku tidak punya field gambar, layar detail tidak menampilkan gambar proyek.
+  - Setelah `TokenAuthentication` menjadi kelas autentikasi pertama, 4 test API Django lama gagal karena tamu kini mendapat 401 (bukan 403). Test tersebut disesuaikan: tamu → 401, pengguna biasa yang login → 403.
+  - Widget test menemukan bug: indikator loading tombol Simpan terus berputar selama dialog sukses terbuka. Loading kini dimatikan sebelum dialog tampil.
   - Field formulir proyek versi awal buatan AI (judul, URL, switch unggulan) tidak sama dengan tutorial, jadi saya minta disesuaikan.
   - Widget test di layar 390×844 menemukan overflow yang tidak terlihat dari kode saja: `InfoCard` yang memakai lebar tetap `width / 3.5` (sudah ada sejak Tugas 7), teks `ItemCard`, dan `DrawerHeader` yang tingginya tetap. Ketiganya diperbaiki dengan `Expanded`, `FittedBox`, dan `Container`.
   - Test awal buatan AI gagal karena mengira formulir memiliki tombol back di AppBar, padahal AppBar menampilkan ikon drawer. Test diubah agar mensimulasikan tombol kembali perangkat (`handlePopRoute`).
